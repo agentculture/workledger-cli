@@ -1,6 +1,6 @@
 [project]
 name = "workledger-cli"
-version = "0.6.1"
+version = "0.7.0"
 description = "Tracks work in a ledger so agents can prove what they did. An agent records its work as append-only ledger entries, hands the ledger down to subagents, and gets it back with their entries folded in, so the whole tree of work and its results stays traceable and checkable."
 readme = "README.md"
 license = "Apache-2.0"

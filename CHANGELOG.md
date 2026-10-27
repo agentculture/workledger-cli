@@ -5,6 +5,14 @@ All notable changes to this project will be documented in this file.
 Format follows [Keep a Changelog](https://keepachangelog.com/). This project
 adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.8.0] - 2026-10-27
+
+### Added
+
+- `append` verb: append one JSON entry (agent, action, summary; optional refs, data) to an append-only JSONL ledger; `--stdin` and `--json` supported; id and UTC timestamp are generated.
+- `list` verb: read entries with `--agent`, `--action`, `--since`, `--limit` filters; `--json` emits an array.
+- Ledger location: `$WORKLEDGER_PATH`, default `./.workledger/ledger.jsonl`. No edit/update/delete verb exists by design.
+
 ## [0.7.0] - 2026-08-24
 
 ### Added

@@ -28,6 +28,8 @@ Commands
   workledger-cli explain <path>...  Markdown docs for any noun/verb path.
   workledger-cli overview           Descriptive snapshot of the agent.
   workledger-cli doctor             Check the agent-identity invariants.
+  workledger-cli append <json>      Append one entry (agent, action, summary; refs, data).
+  workledger-cli list [filters]     Read entries: --agent --action --since --limit.
   workledger-cli cli overview       Describe the CLI surface itself.
 
 Machine-readable output
@@ -41,6 +43,11 @@ Exit-code policy
   1 user-input error (bad flag, bad path, missing arg)
   2 environment / setup error
   3+ reserved
+
+Ledger
+------
+Append-only JSONL at $WORKLEDGER_PATH (default ./.workledger/ledger.jsonl).
+There is deliberately no edit, update, or delete verb.
 
 More detail
 -----------
@@ -59,6 +66,8 @@ def _as_json_payload() -> dict[str, object]:
             {"path": ["explain"], "summary": "Markdown docs by path."},
             {"path": ["overview"], "summary": "Descriptive snapshot of the agent."},
             {"path": ["doctor"], "summary": "Check the agent-identity invariants."},
+            {"path": ["append"], "summary": "Append one entry to the append-only ledger."},
+            {"path": ["list"], "summary": "List ledger entries with filters."},
             {"path": ["cli", "overview"], "summary": "Describe the CLI surface."},
         ],
         "exit_codes": {

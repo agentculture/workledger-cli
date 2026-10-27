@@ -30,6 +30,8 @@ _VERBS = [
     "explain <path> — markdown docs for a topic",
     "overview — this descriptive snapshot",
     "doctor — check the agent-identity invariants",
+    "append <json> — append one entry to the append-only ledger",
+    "list — read ledger entries (--agent, --action, --since, --limit)",
 ]
 
 

@@ -25,6 +25,8 @@ buildable/deployable package baseline. Clone it, rename the package, edit
 - `workledger-cli explain <path>` — markdown docs for any noun/verb.
 - `workledger-cli overview` — descriptive snapshot of the agent.
 - `workledger-cli doctor` — check the agent-identity invariants.
+- `workledger-cli append <json>` — append one entry to the ledger.
+- `workledger-cli list` — read ledger entries with filters.
 - `workledger-cli cli overview` — describe the CLI surface.
 
 ## Exit-code policy
@@ -116,6 +118,39 @@ itself (distinct from the global `overview`, which describes the agent).
 """
 
 
+_APPEND = """\
+# workledger-cli append
+
+Appends exactly one entry to the append-only ledger and prints the stored entry
+(with generated `id` and UTC `timestamp`). This is the only write verb; there is
+no edit, update, or delete.
+
+Required fields: `agent`, `action`, `summary` (non-empty strings). Optional:
+`refs` (list of strings), `data` (JSON object). `id` and `timestamp` are
+generated and rejected if supplied; unknown fields are rejected (exit 1).
+
+Storage: JSONL at `$WORKLEDGER_PATH`, default `./.workledger/ledger.jsonl`.
+
+## Usage
+
+    workledger-cli append '{"agent":"a","action":"edit","summary":"did x"}' --json
+    echo '{"agent":"a","action":"edit","summary":"did x"}' | workledger-cli append --stdin
+"""
+
+_LIST = """\
+# workledger-cli list
+
+Lists ledger entries oldest first. Filters combine with AND: `--agent NAME`,
+`--action NAME`, `--since ISO8601` (inclusive; naive means UTC), `--limit N`
+(the most recent N matches). `--json` emits an array; a missing ledger is an
+empty array.
+
+## Usage
+
+    workledger-cli list
+    workledger-cli list --agent a --since 2026-01-01T00:00:00Z --limit 5 --json
+"""
+
 ENTRIES: dict[tuple[str, ...], str] = {
     (): _ROOT,
     ("workledger-cli",): _ROOT,
@@ -125,6 +160,8 @@ ENTRIES: dict[tuple[str, ...], str] = {
     ("explain",): _EXPLAIN,
     ("overview",): _OVERVIEW,
     ("doctor",): _DOCTOR,
+    ("append",): _APPEND,
+    ("list",): _LIST,
     ("cli",): _CLI,
     ("cli", "overview"): _CLI,
 }

@@ -5,6 +5,17 @@ All notable changes to this project will be documented in this file.
 Format follows [Keep a Changelog](https://keepachangelog.com/). This project
 adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.8.0] - 2026-10-27
+
+### Added
+
+- `append` verb: append one JSON entry (agent, action, summary; optional refs, data) to an append-only JSONL ledger; `--stdin` and `--json` supported; id and UTC timestamp are generated.
+- `list` verb: read entries with `--agent`, `--action`, `--since`, `--limit` filters; `--json` emits an array.
+- Ledger location: `$WORKLEDGER_PATH`, default `.workledger/ledger.jsonl` under the git toplevel of the cwd (the cwd itself outside a repo). No edit/update/delete verb exists by design. `.workledger/` is git-ignored.
+- Integrity: appends are complete writes (short writes are retried) and are refused with exit 2 if the file does not end in a newline. `append` rejects NaN/Infinity (also `1e999`), lone surrogates and control characters/newlines in `agent`/`action`/`summary` as user errors (exit 1) before touching disk; `--stdin` on an interactive terminal fails fast (exit 1).
+- `list` streams the ledger (bounded memory with `--limit`), validates every line, and reports non-UTF-8 bytes, non-object lines, missing/malformed fields or timestamps, and duplicate ids as a corrupt ledger (exit 2, with the line number). `--since` is normalised once to UTC milliseconds; text output escapes control characters so an entry cannot forge extra rows.
+- CI: a `SonarCloud unresolved issues` step fails a pull request while it has any OPEN or CONFIRMED SonarCloud issue (ACCEPTED and FALSE_POSITIVE pass), via `scripts/sonar-pr-issues.py` cited from culture-rules through culture-library.
+
 ## [0.7.0] - 2026-08-24
 
 ### Added

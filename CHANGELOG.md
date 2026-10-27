@@ -12,6 +12,7 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - `append` verb: append one JSON entry (agent, action, summary; optional refs, data) to an append-only JSONL ledger; `--stdin` and `--json` supported; id and UTC timestamp are generated.
 - `list` verb: read entries with `--agent`, `--action`, `--since`, `--limit` filters; `--json` emits an array.
 - Ledger location: `$WORKLEDGER_PATH`, default `./.workledger/ledger.jsonl`. No edit/update/delete verb exists by design.
+- CI: a `SonarCloud unresolved issues` step fails a pull request while it has any OPEN or CONFIRMED SonarCloud issue (ACCEPTED and FALSE_POSITIVE pass), via `scripts/sonar-pr-issues.py` cited from culture-rules through culture-library.
 
 ## [0.7.0] - 2026-08-24
 

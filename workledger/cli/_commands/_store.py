@@ -25,11 +25,12 @@ DEFAULT_PATH = Path(".workledger") / "ledger.jsonl"
 REQUIRED_FIELDS = ("agent", "action", "summary")
 INPUT_FIELDS = frozenset(REQUIRED_FIELDS) | {"refs", "data"}
 GENERATED_FIELDS = frozenset({"id", "timestamp"})
+UTC_OFFSET = "+00:00"
 
 
 # Fixed-format UTC timestamps (what ``now_utc`` writes); lexicographic order == time order.
 TIMESTAMP_RE = re.compile(
-    r"\d{4}-(?:0[1-9]|1[0-2])-(?:0[1-9]|[12]\d|3[01])" r"T(?:[01]\d|2[0-3]):[0-5]\d:[0-5]\d\.\d{3}Z"
+    r"\d{4}-(?:0[1-9]|1[0-2])-(?:0[1-9]|[12]\d|3[01])T(?:[01]\d|2[0-3]):[0-5]\d:[0-5]\d\.\d{3}Z"
 )
 
 
@@ -81,14 +82,14 @@ def loads_strict(text: str) -> Any:
 
 
 def now_utc() -> str:
-    return datetime.now(timezone.utc).isoformat(timespec="milliseconds").replace("+00:00", "Z")
+    return datetime.now(timezone.utc).isoformat(timespec="milliseconds").replace(UTC_OFFSET, "Z")
 
 
 def parse_timestamp(value: str) -> datetime:
     """Parse ISO-8601; a trailing ``Z`` or a naive value is treated as UTC."""
     text = value.strip()
     if text.endswith(("Z", "z")):
-        text = text[:-1] + "+00:00"
+        text = text[:-1] + UTC_OFFSET
     try:
         parsed = datetime.fromisoformat(text)
     except ValueError as err:
@@ -118,7 +119,7 @@ def normalize_since(value: str) -> str:
             message=f"timestamp out of range: {value!r}",
             remediation="use e.g. 2026-01-31T12:00:00Z",
         ) from err
-    return utc.isoformat(timespec="milliseconds").replace("+00:00", "Z")
+    return utc.isoformat(timespec="milliseconds").replace(UTC_OFFSET, "Z")
 
 
 def validate_input(raw: Any) -> dict[str, Any]:
@@ -249,7 +250,7 @@ def encode_line(entry: dict[str, Any]) -> bytes:
     try:
         line = json.dumps(entry, ensure_ascii=False, separators=(",", ":"), allow_nan=False)
         return (line + "\n").encode("utf-8")
-    except (ValueError, UnicodeEncodeError, RecursionError) as err:
+    except (ValueError, RecursionError) as err:
         raise CliError(
             code=EXIT_USER_ERROR,
             message=f"entry cannot be stored as strict JSON/UTF-8: {err}",

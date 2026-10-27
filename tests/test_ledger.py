@@ -29,18 +29,24 @@ def run_append(capsys, entry: dict, *extra: str):
 
 def test_append_json_returns_stored_entry(ledger, capsys) -> None:
     rc, out, err = run_append(capsys, {**ENTRY, "refs": ["abc"], "data": {"n": 1}}, "--json")
-    assert rc == 0 and err == ""
+    assert rc == 0
+    assert err == ""
     stored = json.loads(out)
-    assert stored["agent"] == "assoc" and stored["refs"] == ["abc"] and stored["data"] == {"n": 1}
-    assert len(stored["id"]) == 32 and stored["timestamp"].endswith("Z")
+    assert stored["agent"] == "assoc"
+    assert stored["refs"] == ["abc"]
+    assert stored["data"] == {"n": 1}
+    assert len(stored["id"]) == 32
+    assert stored["timestamp"].endswith("Z")
     assert json.loads(ledger.read_text().splitlines()[0]) == stored
 
 
 def test_append_defaults_and_text_mode(ledger, capsys) -> None:
     rc, out, _ = run_append(capsys, ENTRY)
-    assert rc == 0 and out.startswith("appended ")
+    assert rc == 0
+    assert out.startswith("appended ")
     stored = json.loads(ledger.read_text())
-    assert stored["refs"] == [] and stored["data"] == {}
+    assert stored["refs"] == []
+    assert stored["data"] == {}
 
 
 def test_append_stdin(ledger, capsys, monkeypatch: pytest.MonkeyPatch) -> None:
@@ -71,7 +77,9 @@ def test_append_user_errors(ledger, capsys, argv) -> None:
     cap = capsys.readouterr()
     assert cap.out == ""
     err = json.loads(cap.err)
-    assert err["code"] == 1 and err["message"] and err["remediation"]
+    assert err["code"] == 1
+    assert err["message"]
+    assert err["remediation"]
     assert not ledger.exists()
 
 
@@ -128,7 +136,8 @@ def test_list_bad_args(ledger, capsys, argv) -> None:
         rc = exc.code
     assert rc == 1
     cap = capsys.readouterr()
-    assert cap.out == "" and json.loads(cap.err)["code"] == 1
+    assert cap.out == ""
+    assert json.loads(cap.err)["code"] == 1
 
 
 def test_list_corrupt_ledger_is_env_error(ledger, capsys) -> None:
@@ -153,9 +162,11 @@ def test_append_never_rewrites_earlier_bytes(ledger, capsys) -> None:
     before = ledger.read_bytes()
     (second,) = seed(capsys, {**ENTRY, "summary": "again"})
     after = ledger.read_bytes()
-    assert after.startswith(before) and len(after) > len(before)
+    assert after.startswith(before)
+    assert len(after) > len(before)
     ids = [json.loads(line)["id"] for line in after.splitlines()]
-    assert ids == [first["id"], second["id"]] and len(set(ids)) == 2
+    assert ids == [first["id"], second["id"]]
+    assert len(set(ids)) == 2
 
 
 def test_entry_cannot_be_modified_removed_or_id_supplied_through_cli(ledger, capsys) -> None:
@@ -197,7 +208,8 @@ def write_lines(ledger: Path, *lines: str) -> None:
 
 def err_of(capsys) -> dict:
     cap = capsys.readouterr()
-    assert cap.out == "" and "Traceback" not in cap.err
+    assert cap.out == ""
+    assert "Traceback" not in cap.err
     return json.loads(cap.err)
 
 
@@ -258,7 +270,8 @@ def test_list_malformed_line_is_corrupt(ledger, capsys, bad) -> None:
     for argv in (["list"], ["list", "--since", "2020-01-01", "--agent", "x"]):
         assert main([*argv, "--json"]) == 2
         err = err_of(capsys)
-        assert err["code"] == 2 and "line 2" in err["message"]
+        assert err["code"] == 2
+        assert "line 2" in err["message"]
 
 
 # 3. encodings
@@ -280,7 +293,8 @@ def test_append_lone_surrogate_rejected_before_mkdir(ledger, capsys) -> None:
 def test_append_raw_surrogate_in_argv_rejected(ledger, capsys) -> None:
     raw = '{"agent":"a","action":"b","summary":"\ud800"}'
     assert main(["append", raw, "--json"]) == 1
-    assert err_of(capsys)["code"] == 1 and not ledger.parent.exists()
+    assert err_of(capsys)["code"] == 1
+    assert not ledger.parent.exists()
 
 
 # 4. NaN / Infinity
@@ -290,7 +304,8 @@ def test_append_raw_surrogate_in_argv_rejected(ledger, capsys) -> None:
 def test_append_rejects_non_finite(ledger, capsys, tok) -> None:
     raw = '{"agent":"a","action":"b","summary":"c","data":{"x":%s}}' % tok
     assert main(["append", raw, "--json"]) == 1
-    assert err_of(capsys)["code"] == 1 and not ledger.parent.exists()
+    assert err_of(capsys)["code"] == 1
+    assert not ledger.parent.exists()
 
 
 def test_stored_lines_are_strict_json(ledger, capsys) -> None:
@@ -309,7 +324,8 @@ def test_stored_lines_are_strict_json(ledger, capsys) -> None:
 @pytest.mark.parametrize("ch", ["\n", "\r", "\x1b", "\u2028"])
 def test_append_rejects_control_chars_in_required_fields(ledger, capsys, field, ch) -> None:
     assert main(["append", json.dumps({**ENTRY, field: f"a{ch}b"}), "--json"]) == 1
-    assert err_of(capsys)["code"] == 1 and not ledger.parent.exists()
+    assert err_of(capsys)["code"] == 1
+    assert not ledger.parent.exists()
 
 
 def test_list_text_escapes_control_chars(ledger, capsys) -> None:
@@ -317,7 +333,8 @@ def test_list_text_escapes_control_chars(ledger, capsys) -> None:
     write_lines(ledger, json.dumps(good(summary=forged)))
     assert main(["list"]) == 0
     out = capsys.readouterr().out
-    assert len(out.strip().splitlines()) == 1 and "\\x0a" in out
+    assert len(out.strip().splitlines()) == 1
+    assert "\\x0a" in out
 
 
 # 6. duplicate ids in the file
@@ -327,7 +344,8 @@ def test_list_duplicate_id_is_corrupt(ledger, capsys) -> None:
     write_lines(ledger, json.dumps(good()), json.dumps(good()))
     assert main(["list", "--json"]) == 2
     err = err_of(capsys)
-    assert "duplicate" in err["message"] and "line 2" in err["message"]
+    assert "duplicate" in err["message"]
+    assert "line 2" in err["message"]
 
 
 # 7. default path
@@ -357,7 +375,8 @@ def test_env_overrides_git_toplevel(tmp_path, monkeypatch, ledger) -> None:
     (tmp_path / ".git").mkdir()
     monkeypatch.chdir(tmp_path)
     assert main(["append", json.dumps(ENTRY)]) == 0
-    assert ledger.exists() and not (tmp_path / ".workledger").exists()
+    assert ledger.exists()
+    assert not (tmp_path / ".workledger").exists()
 
 
 def test_gitignore_covers_ledger_dir() -> None:
@@ -417,4 +436,5 @@ def test_append_stdin_tty_fails_fast(ledger, capsys, monkeypatch) -> None:
 
     monkeypatch.setattr("sys.stdin", Tty())
     assert main(["append", "--stdin", "--json"]) == 1
-    assert err_of(capsys)["code"] == 1 and not ledger.parent.exists()
+    assert err_of(capsys)["code"] == 1
+    assert not ledger.parent.exists()

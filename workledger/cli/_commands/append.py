@@ -3,12 +3,12 @@
 from __future__ import annotations
 
 import argparse
-import json
 import sys
 
 from workledger.cli._commands._store import (
     append_entry,
     ledger_path,
+    loads_strict,
     validate_input,
 )
 from workledger.cli._errors import EXIT_USER_ERROR, CliError
@@ -28,10 +28,16 @@ def cmd_append(args: argparse.Namespace) -> int:
             message="no entry given",
             remediation="pass a JSON object argument, or use --stdin",
         )
+    if args.stdin and sys.stdin.isatty():
+        raise CliError(
+            code=EXIT_USER_ERROR,
+            message="--stdin was given but stdin is an interactive terminal",
+            remediation="pipe the entry in (echo '{...}' | workledger-cli append --stdin)",
+        )
     text = sys.stdin.read() if args.stdin else args.entry
     try:
-        raw = json.loads(text)
-    except json.JSONDecodeError as err:
+        raw = loads_strict(text)
+    except (ValueError, RecursionError) as err:  # JSONDecodeError is a ValueError
         raise CliError(
             code=EXIT_USER_ERROR,
             message=f"entry is not valid JSON: {err}",

@@ -9,8 +9,11 @@ from __future__ import annotations
 
 import json
 import os
+import re
+import unicodedata
 import uuid
-from datetime import datetime, timezone
+from collections.abc import Iterator
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any
 
@@ -24,10 +27,57 @@ INPUT_FIELDS = frozenset(REQUIRED_FIELDS) | {"refs", "data"}
 GENERATED_FIELDS = frozenset({"id", "timestamp"})
 
 
+# Fixed-format UTC timestamps (what ``now_utc`` writes); lexicographic order == time order.
+TIMESTAMP_RE = re.compile(
+    r"\d{4}-(?:0[1-9]|1[0-2])-(?:0[1-9]|[12]\d|3[01])" r"T(?:[01]\d|2[0-3]):[0-5]\d:[0-5]\d\.\d{3}Z"
+)
+
+
+def _git_toplevel(start: Path) -> Path | None:
+    """Nearest ancestor holding ``.git`` (a dir, or a file for worktrees/submodules)."""
+    for candidate in (start, *start.parents):
+        if (candidate / ".git").exists():
+            return candidate
+    return None
+
+
 def ledger_path() -> Path:
-    """Resolve the ledger file: ``$WORKLEDGER_PATH`` or ``./.workledger/ledger.jsonl``."""
+    """Resolve the ledger file.
+
+    ``$WORKLEDGER_PATH`` wins; otherwise ``.workledger/ledger.jsonl`` under the
+    git toplevel of the cwd, or under the cwd when not inside a repository.
+    """
     env = os.environ.get(ENV_PATH)
-    return Path(env) if env else DEFAULT_PATH
+    if env:
+        return Path(env)
+    cwd = Path.cwd()
+    return (_git_toplevel(cwd) or cwd) / DEFAULT_PATH
+
+
+def has_control_chars(value: str) -> bool:
+    """True for control (Cc), surrogate (Cs) and line/paragraph separator characters."""
+    return any(unicodedata.category(c) in ("Cc", "Cs") or c in "\u2028\u2029" for c in value)
+
+
+def escape_control_chars(value: str) -> str:
+    """Render control characters visibly (``\\x0a``) so one entry stays on one row."""
+    return "".join(
+        (
+            (f"\\x{ord(c):02x}" if ord(c) < 0x100 else f"\\u{ord(c):04x}")
+            if has_control_chars(c)
+            else c
+        )
+        for c in value
+    )
+
+
+def reject_constant(token: str) -> Any:
+    raise ValueError(f"non-finite number {token} is not valid JSON")
+
+
+def loads_strict(text: str) -> Any:
+    """``json.loads`` that rejects NaN / Infinity / -Infinity."""
+    return json.loads(text, parse_constant=reject_constant)
 
 
 def now_utc() -> str:
@@ -50,6 +100,25 @@ def parse_timestamp(value: str) -> datetime:
     if parsed.tzinfo is None:
         parsed = parsed.replace(tzinfo=timezone.utc)
     return parsed
+
+
+def normalize_since(value: str) -> str:
+    """Normalise ``--since`` once to the ledger's ``YYYY-MM-DDTHH:MM:SS.mmmZ`` format.
+
+    Sub-millisecond precision rounds *up*, so no entry earlier than the bound is included.
+    """
+    parsed = parse_timestamp(value)
+    try:
+        utc = parsed.astimezone(timezone.utc)
+        if utc.microsecond % 1000:
+            utc += timedelta(microseconds=1000 - utc.microsecond % 1000)
+    except OverflowError as err:
+        raise CliError(
+            code=EXIT_USER_ERROR,
+            message=f"timestamp out of range: {value!r}",
+            remediation="use e.g. 2026-01-31T12:00:00Z",
+        ) from err
+    return utc.isoformat(timespec="milliseconds").replace("+00:00", "Z")
 
 
 def validate_input(raw: Any) -> dict[str, Any]:
@@ -82,6 +151,12 @@ def validate_input(raw: Any) -> dict[str, Any]:
                 message=f"field '{field}' is required and must be a non-empty string",
                 remediation=f'add "{field}": "..." to the entry',
             )
+        if has_control_chars(value):
+            raise CliError(
+                code=EXIT_USER_ERROR,
+                message=f"field '{field}' must not contain control characters or newlines",
+                remediation="use plain single-line text; put structured detail in 'data'",
+            )
     entry: dict[str, Any] = {f: raw[f] for f in REQUIRED_FIELDS}
     refs = raw.get("refs", [])
     if not isinstance(refs, list) or not all(isinstance(r, str) for r in refs):
@@ -102,43 +177,109 @@ def validate_input(raw: Any) -> dict[str, Any]:
     return entry
 
 
-def read_entries(path: Path) -> list[dict[str, Any]]:
-    """Read all entries; a missing file is an empty ledger."""
+def _corrupt(path: Path, lineno: int, why: str) -> CliError:
+    return CliError(
+        code=EXIT_ENV_ERROR,
+        message=f"ledger {path} is corrupt at line {lineno}: {why}",
+        remediation="the ledger is append-only; inspect the file by hand",
+    )
+
+
+def _check_entry(path: Path, lineno: int, obj: Any) -> dict[str, Any]:
+    if not isinstance(obj, dict):
+        raise _corrupt(path, lineno, "not a JSON object")
+    for field in ("id", *REQUIRED_FIELDS):
+        value = obj.get(field)
+        if not isinstance(value, str) or not value:
+            raise _corrupt(path, lineno, f"missing or non-string '{field}'")
+    timestamp = obj.get("timestamp")
+    if not isinstance(timestamp, str) or not TIMESTAMP_RE.fullmatch(timestamp):
+        raise _corrupt(path, lineno, "missing or malformed 'timestamp'")
+    refs = obj.get("refs", [])
+    if not isinstance(refs, list) or not all(isinstance(r, str) for r in refs):
+        raise _corrupt(path, lineno, "'refs' is not a list of strings")
+    if not isinstance(obj.get("data", {}), dict):
+        raise _corrupt(path, lineno, "'data' is not an object")
+    return obj
+
+
+def iter_entries(path: Path) -> Iterator[dict[str, Any]]:
+    """Stream validated entries in file order; a missing file is an empty ledger.
+
+    Every line is validated (shape, timestamp format, unique id) even when the
+    caller later filters it out, so corruption is never silently skipped.
+    """
     try:
-        text = path.read_text(encoding="utf-8")
+        handle = open(path, "rb")
     except FileNotFoundError:
-        return []
+        return
     except OSError as err:
         raise CliError(
             code=EXIT_ENV_ERROR,
             message=f"cannot read ledger {path}: {err}",
             remediation=f"check permissions or set {ENV_PATH}",
         ) from err
-    entries: list[dict[str, Any]] = []
-    for lineno, line in enumerate(text.splitlines(), start=1):
-        if not line.strip():
-            continue
+    seen: set[str] = set()
+    with handle:
         try:
-            obj = json.loads(line)
-        except json.JSONDecodeError as err:
+            for lineno, raw in enumerate(handle, start=1):
+                if not raw.strip():
+                    continue
+                try:
+                    obj = loads_strict(raw.decode("utf-8"))
+                except UnicodeDecodeError as err:
+                    raise _corrupt(path, lineno, "not valid UTF-8") from err
+                except (ValueError, RecursionError) as err:
+                    raise _corrupt(path, lineno, "not valid JSON") from err
+                entry = _check_entry(path, lineno, obj)
+                if entry["id"] in seen:
+                    raise _corrupt(path, lineno, f"duplicate id {entry['id']!r}")
+                seen.add(entry["id"])
+                yield entry
+        except OSError as err:
             raise CliError(
                 code=EXIT_ENV_ERROR,
-                message=f"ledger {path} is corrupt at line {lineno}",
-                remediation="the ledger is append-only; inspect the file by hand",
+                message=f"cannot read ledger {path}: {err}",
+                remediation=f"check permissions or set {ENV_PATH}",
             ) from err
-        entries.append(obj)
-    return entries
+
+
+def encode_line(entry: dict[str, Any]) -> bytes:
+    """Serialise one entry as strict JSON + newline; unencodable input is a user error."""
+    try:
+        line = json.dumps(entry, ensure_ascii=False, separators=(",", ":"), allow_nan=False)
+        return (line + "\n").encode("utf-8")
+    except (ValueError, UnicodeEncodeError, RecursionError) as err:
+        raise CliError(
+            code=EXIT_USER_ERROR,
+            message=f"entry cannot be stored as strict JSON/UTF-8: {err}",
+            remediation="remove NaN/Infinity numbers and lone surrogate characters",
+        ) from err
+
+
+def _write_all(fd: int, payload: bytes) -> None:
+    view = memoryview(payload)
+    while view:
+        written = os.write(fd, view)
+        view = view[written:]
 
 
 def append_entry(path: Path, entry_input: dict[str, Any]) -> dict[str, Any]:
     """Stamp ``id``/``timestamp`` and append one line. Never touches prior lines."""
     entry = {"id": uuid.uuid4().hex, "timestamp": now_utc(), **entry_input}
-    line = json.dumps(entry, ensure_ascii=False, separators=(",", ":")) + "\n"
+    payload = encode_line(entry)  # validate before any filesystem side effect
     try:
         path.parent.mkdir(parents=True, exist_ok=True)
-        fd = os.open(path, os.O_WRONLY | os.O_APPEND | os.O_CREAT, 0o644)
+        fd = os.open(path, os.O_RDWR | os.O_APPEND | os.O_CREAT, 0o644)
         try:
-            os.write(fd, line.encode("utf-8"))  # single O_APPEND write per entry
+            size = os.fstat(fd).st_size
+            if size and os.pread(fd, 1, size - 1) != b"\n":
+                raise CliError(
+                    code=EXIT_ENV_ERROR,
+                    message=f"ledger {path} does not end with a newline (truncated write?)",
+                    remediation="the ledger is append-only; repair the last line by hand",
+                )
+            _write_all(fd, payload)
         finally:
             os.close(fd)
     except OSError as err:

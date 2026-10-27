@@ -3,8 +3,14 @@
 from __future__ import annotations
 
 import argparse
+from collections import deque
 
-from workledger.cli._commands._store import ledger_path, parse_timestamp, read_entries
+from workledger.cli._commands._store import (
+    escape_control_chars,
+    iter_entries,
+    ledger_path,
+    normalize_since,
+)
 from workledger.cli._errors import EXIT_USER_ERROR, CliError
 from workledger.cli._output import emit_result
 
@@ -16,21 +22,24 @@ def cmd_list(args: argparse.Namespace) -> int:
             message="--limit must be >= 1",
             remediation="pass a positive integer",
         )
-    since = parse_timestamp(args.since) if args.since else None
-    entries = read_entries(ledger_path())
-    if args.agent:
-        entries = [e for e in entries if e.get("agent") == args.agent]
-    if args.action:
-        entries = [e for e in entries if e.get("action") == args.action]
-    if since is not None:
-        entries = [e for e in entries if parse_timestamp(e["timestamp"]) >= since]
-    if args.limit is not None:
-        entries = entries[-args.limit :]  # the most recent N, still in append order
+    since = normalize_since(args.since) if args.since else None
+    stream = iter_entries(ledger_path())
+    # Stored timestamps are validated fixed-format UTC, so string order == time order.
+    matches = (
+        e
+        for e in stream
+        if (not args.agent or e["agent"] == args.agent)
+        and (not args.action or e["action"] == args.action)
+        and (since is None or e["timestamp"] >= since)
+    )
+    # Most recent N only, still in append order; deque keeps memory bounded by N.
+    entries = list(deque(matches, maxlen=args.limit) if args.limit is not None else matches)
     if getattr(args, "json", False):
         emit_result(entries, json_mode=True)
     else:
         text = "\n".join(
-            f"{e['timestamp']}  {e['id']}  {e['agent']}  {e['action']}  {e['summary']}"
+            f"{e['timestamp']}  {e['id']}  {escape_control_chars(e['agent'])}  "
+            f"{escape_control_chars(e['action'])}  {escape_control_chars(e['summary'])}"
             for e in entries
         )
         emit_result(text if entries else "(no entries)", json_mode=False)

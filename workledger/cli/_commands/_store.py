@@ -27,6 +27,13 @@ INPUT_FIELDS = frozenset(REQUIRED_FIELDS) | {"refs", "data"}
 GENERATED_FIELDS = frozenset({"id", "timestamp"})
 UTC_OFFSET = "+00:00"
 
+# How :func:`ledger_path` picks the file when ``$WORKLEDGER_PATH`` is unset. The
+# one wording every self-description (learn, explain, overview) repeats.
+DEFAULT_LOCATION_RULE = (
+    f"{DEFAULT_PATH.as_posix()} under the nearest ancestor directory that contains .git "
+    "(else the current directory)"
+)
+
 
 # Fixed-format UTC timestamps (what ``now_utc`` writes); lexicographic order == time order.
 TIMESTAMP_RE = re.compile(
@@ -45,8 +52,10 @@ def _git_toplevel(start: Path) -> Path | None:
 def ledger_path() -> Path:
     """Resolve the ledger file.
 
-    ``$WORKLEDGER_PATH`` wins; otherwise ``.workledger/ledger.jsonl`` under the
-    git toplevel of the cwd, or under the cwd when not inside a repository.
+    A non-empty ``$WORKLEDGER_PATH`` wins and is used as given (a relative value
+    is relative to the cwd). Otherwise the file is ``.workledger/ledger.jsonl``
+    under the nearest directory that contains a ``.git`` entry, searching from
+    the cwd itself upwards; with no such directory, under the cwd.
     """
     env = os.environ.get(ENV_PATH)
     if env:

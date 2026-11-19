@@ -1,4 +1,4 @@
-"""``workledger-cli learn`` — the learnability affordance.
+"""``ledger learn`` — the learnability affordance.
 
 Prints a structured self-teaching prompt. Must satisfy the agent-first rubric:
 >=200 chars and mention purpose, command map, exit codes, --json, and explain.
@@ -9,33 +9,40 @@ from __future__ import annotations
 import argparse
 
 from workledger import __version__
+from workledger._about import COMMAND, DISTRIBUTION, summary
+from workledger.cli._commands._store import DEFAULT_LOCATION_RULE, ENV_PATH
 from workledger.cli._output import emit_result
 
-_TEXT = """\
-workledger-cli — a clonable template for AgentCulture mesh agents.
+_TEXT = f"""\
+{DISTRIBUTION} (command: `{COMMAND}`)
+
+{summary()}
 
 Purpose
 -------
-Scaffold for a new Culture mesh agent: an agent-first CLI (cited from the teken
-`python-cli` reference), an identity (culture.yaml + CLAUDE.md), the canonical
-guildmaster skill kit under .claude/skills/, and a deploy/CI baseline. Clone it,
-rename the package, and edit culture.yaml to mint a new agent.
+A work ledger for agents. An agent records each piece of work as one entry in
+an append-only ledger (`append`) and reads entries back with filters (`list`).
+Entries are never edited or removed, so the record of who did what, and when,
+stays traceable and checkable. Agents and subagents that are given the same
+ledger file add their entries to the one record.
+
+The package is {DISTRIBUTION}; the command it installs is `{COMMAND}`.
 
 Commands
 --------
-  workledger-cli whoami             Identity from culture.yaml.
-  workledger-cli learn              This self-teaching prompt.
-  workledger-cli explain <path>...  Markdown docs for any noun/verb path.
-  workledger-cli overview           Descriptive snapshot of the agent.
-  workledger-cli doctor             Check the agent-identity invariants.
-  workledger-cli append <json>      Append one entry (agent, action, summary; refs, data).
-  workledger-cli list [filters]     Read entries: --agent --action --since --limit.
-  workledger-cli cli overview       Describe the CLI surface itself.
+  ledger whoami             Identity from culture.yaml.
+  ledger learn              This self-teaching prompt.
+  ledger explain <path>...  Markdown docs for any noun/verb path.
+  ledger overview           Descriptive snapshot of the agent.
+  ledger doctor             Check the agent-identity invariants.
+  ledger append <json>      Append one entry (agent, action, summary; refs, data).
+  ledger list [filters]     Read entries: --agent --action --since --limit.
+  ledger cli overview       Describe the CLI surface itself.
 
 Machine-readable output
 -----------------------
 Every command supports --json. Errors in JSON mode emit
-{"code", "message", "remediation"} to stderr. Stdout and stderr never mix.
+{{"code", "message", "remediation"}} to stderr. Stdout and stderr never mix.
 
 Exit-code policy
 ----------------
@@ -46,20 +53,26 @@ Exit-code policy
 
 Ledger
 ------
-Append-only JSONL at $WORKLEDGER_PATH (default ./.workledger/ledger.jsonl).
+Append-only JSONL. The file is ${ENV_PATH} when that is set; otherwise
+{DEFAULT_LOCATION_RULE}.
+An entry holds agent, action and summary, optional refs and data, and a
+generated id and UTC timestamp.
 There is deliberately no edit, update, or delete verb.
 
 More detail
 -----------
-  workledger-cli explain workledger-cli
+  ledger explain ledger
 """
 
 
 def _as_json_payload() -> dict[str, object]:
     return {
-        "tool": "workledger-cli",
+        "tool": DISTRIBUTION,
         "version": __version__,
-        "purpose": "Clonable scaffold for a new AgentCulture mesh agent.",
+        "purpose": (
+            f"{summary()} Append-only entries are written with append and read back with list."
+        ),
+        "console_script": COMMAND,
         "commands": [
             {"path": ["whoami"], "summary": "Identity probe from culture.yaml."},
             {"path": ["learn"], "summary": "Self-teaching prompt."},
@@ -76,7 +89,7 @@ def _as_json_payload() -> dict[str, object]:
             "2": "environment/setup error",
         },
         "json_support": True,
-        "explain_pointer": "workledger-cli explain <path>",
+        "explain_pointer": f"{COMMAND} explain <path>",
     }
 
 

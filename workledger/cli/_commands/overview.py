@@ -1,7 +1,8 @@
-"""``workledger-cli overview`` — read-only descriptive snapshot of the agent.
+"""``ledger overview`` — read-only descriptive snapshot of the agent.
 
-Describes the agent to an agent reader: identity (from culture.yaml), the verb
-surface, and the sibling-pattern artifacts this template carries. The shared
+Describes the agent to an agent reader: what it is for (a work ledger for
+agents), identity (from culture.yaml), the verb surface, and the artifacts the
+repository carries. The shared
 section/render helpers here are reused by the ``cli`` noun's ``overview`` (see
 :mod:`workledger.cli._commands.cli`).
 
@@ -14,14 +15,16 @@ from __future__ import annotations
 
 import argparse
 
+from workledger._about import DISTRIBUTION, summary
+from workledger.cli._commands._store import DEFAULT_LOCATION_RULE, ENV_PATH
 from workledger.cli._commands.whoami import report
 from workledger.cli._output import emit_result
 
 _ARTIFACTS = [
     "culture.yaml + AGENTS.colleague.md — mesh identity (suffix + backend)",
-    ".claude/skills/ — the canonical guildmaster skill kit (cite-don't-import)",
+    ".claude/skills/ — vendored skills (cite-don't-import)",
     "docs/skill-sources.md — skill provenance ledger",
-    "pyproject.toml + .github/workflows/ — buildable, deployable package baseline",
+    "pyproject.toml + .github/workflows/ — package build, tests, lint and publishing",
 ]
 
 _VERBS = [
@@ -35,8 +38,20 @@ _VERBS = [
 ]
 
 
+def _purpose() -> list[str]:
+    return [
+        summary(),
+        "append adds one entry; list reads entries back; nothing edits or deletes an entry",
+        f"ledger file (append-only JSONL): ${ENV_PATH} when set; otherwise {DEFAULT_LOCATION_RULE}",
+    ]
+
+
 def agent_sections() -> list[dict[str, object]]:
-    """Sections describing the agent (used by the global verb)."""
+    """Sections describing the agent (used by the global verb).
+
+    ``Purpose`` is last on purpose: it was added after the other three, and
+    appending it keeps their indexes in ``overview --json`` what they were.
+    """
     ident = report()
     return [
         {
@@ -49,7 +64,8 @@ def agent_sections() -> list[dict[str, object]]:
             ],
         },
         {"title": "Verbs", "items": list(_VERBS)},
-        {"title": "Sibling-pattern artifacts", "items": list(_ARTIFACTS)},
+        {"title": "Repository artifacts", "items": list(_ARTIFACTS)},
+        {"title": "Purpose", "items": _purpose()},
     ]
 
 
@@ -92,7 +108,7 @@ def cmd_overview(args: argparse.Namespace) -> int:
     # `target` is accepted for rubric compatibility (descriptive verbs must not
     # hard-fail on a missing path) but overview describes this agent itself.
     emit_overview(
-        "workledger-cli",
+        DISTRIBUTION,
         agent_sections(),
         json_mode=bool(getattr(args, "json", False)),
     )
@@ -102,7 +118,7 @@ def cmd_overview(args: argparse.Namespace) -> int:
 def register(sub: argparse._SubParsersAction) -> None:
     p = sub.add_parser(
         "overview",
-        help="Read-only descriptive snapshot of the agent (identity, verbs, artifacts).",
+        help="Read-only descriptive snapshot of the agent (identity, verbs, artifacts, purpose).",
     )
     p.add_argument(
         "target",

@@ -5,6 +5,24 @@ All notable changes to this project will be documented in this file.
 Format follows [Keep a Changelog](https://keepachangelog.com/). This project
 adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.9.0] - 2026-11-19
+
+### Changed
+
+- The argparse `prog` is now `ledger`, the command the package installs, and every invocation the tool prints uses it: `--help` usage lines (`usage: ledger ...`), `--version` (`ledger <version>`), the `learn` text, the `explain` catalog headings and usage blocks, the subjects `ledger cli` (`cli overview`, text and `--json`) and `ledger doctor: ...`, and error hints and remediations (`run 'ledger --help' ...`, `ledger explain ledger`, `ledger append --stdin`). They used to say `workledger-cli <verb>`, which is not an installed command. The package and distribution are still named `workledger-cli`; `explain`, `explain workledger-cli` and `explain ledger` all still resolve to the root entry.
+- `learn --json`: `explain_pointer` is now `ledger explain <path>`, a new `console_script` field holds `ledger`, and `purpose` describes the ledger. `tool` is still `workledger-cli`.
+- `overview` (text and `--json`) has a new last section, `Purpose`, that says what the package is for. `Identity` and `Verbs` keep their positions (indexes 0 and 1).
+- `overview`: the third section is now titled `Repository artifacts` (was `Sibling-pattern artifacts`), and its skills line reads "vendored skills".
+- The root `explain` entry's heading now names both the package and the command: ``# workledger-cli (command: `ledger`)``.
+- README quickstart uses the `ledger` command and shows `append` and `list`; its list of what the repository contains was rewritten against the tree (18 skills, not 11).
+- The one-sentence summary in `--help`, `learn`, `explain` and `overview` is read from the installed distribution's metadata (`workledger/_about.py`), not copied into each.
+
+### Fixed
+
+- The `--help` description, the `learn` text and JSON, the `explain` root entry and the `overview` docs described the starter this repo was scaffolded from ("a clonable template for AgentCulture mesh agents"). They now describe the package: a work ledger for agents, matching the `pyproject.toml` description.
+- The default ledger path was described as `./.workledger/ledger.jsonl`, and then as "under the git toplevel". `learn`, `explain`, `explain append`, `overview` and the README now state what the store does: `$WORKLEDGER_PATH` when set; otherwise `.workledger/ledger.jsonl` under the nearest ancestor directory that contains `.git` (else the current directory). The store's behaviour did not change.
+- README no longer carries the starter's "Make it your own" rename instructions, and a leftover "register your own noun groups" comment is gone from the parser.
+
 ## [0.8.0] - 2026-10-27
 
 ### Added

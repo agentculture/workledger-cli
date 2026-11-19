@@ -1,4 +1,4 @@
-"""``workledger-cli append`` — append one entry to the ledger (the only write verb)."""
+"""``ledger append`` — append one entry to the ledger (the only write verb)."""
 
 from __future__ import annotations
 
@@ -32,7 +32,7 @@ def cmd_append(args: argparse.Namespace) -> int:
         raise CliError(
             code=EXIT_USER_ERROR,
             message="--stdin was given but stdin is an interactive terminal",
-            remediation="pipe the entry in (echo '{...}' | workledger-cli append --stdin)",
+            remediation="pipe the entry in (echo '{...}' | ledger append --stdin)",
         )
     text = sys.stdin.read() if args.stdin else args.entry
     try:

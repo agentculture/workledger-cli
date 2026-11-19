@@ -1,4 +1,4 @@
-"""``workledger-cli list`` — read ledger entries, with simple filters."""
+"""``ledger list`` — read ledger entries, with simple filters."""
 
 from __future__ import annotations
 

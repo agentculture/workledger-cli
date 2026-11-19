@@ -1,9 +1,10 @@
-"""Unified CLI entry point for workledger-cli.
+"""Unified CLI entry point for workledger-cli (the ``ledger`` command).
 
-The agent-first global verbs (``whoami``, ``learn``, ``explain``, ``overview``,
-``doctor``) are registered here under :mod:`workledger.cli._commands`,
-alongside the ``cli`` noun group. Future noun groups register via their own
-``register()`` functions following the same pattern.
+The ledger verbs (``append``, ``list``) and the agent-first global verbs
+(``whoami``, ``learn``, ``explain``, ``overview``, ``doctor``) are registered
+here under :mod:`workledger.cli._commands`, alongside the ``cli`` noun group.
+Future noun groups register via their own ``register()`` functions following
+the same pattern.
 
 Error propagation contract
 --------------------------
@@ -25,6 +26,7 @@ import argparse
 import sys
 
 from workledger import __version__
+from workledger._about import COMMAND, DISTRIBUTION, summary
 from workledger.cli._errors import EXIT_USER_ERROR, CliError
 from workledger.cli._output import emit_error
 
@@ -72,8 +74,8 @@ def _build_parser() -> argparse.ArgumentParser:
     from workledger.cli._commands import whoami as _whoami_cmd
 
     parser = _CliArgumentParser(
-        prog="workledger-cli",
-        description="workledger-cli — a clonable template for AgentCulture mesh agents.",
+        prog=COMMAND,
+        description=f"{summary()} (package {DISTRIBUTION}, command {COMMAND})",
     )
     parser.add_argument(
         "--version",
@@ -92,9 +94,6 @@ def _build_parser() -> argparse.ArgumentParser:
     _append_cmd.register(sub)
     _list_cmd.register(sub)
     _cli_group.register(sub)
-    # Register your own noun groups here:
-    #   from workledger.cli._commands import my_noun as _my_noun_group
-    #   _my_noun_group.register(sub)
 
     return parser
 

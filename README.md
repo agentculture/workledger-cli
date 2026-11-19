@@ -2,17 +2,23 @@
 
 Tracks work in a ledger so agents can prove what they did. An agent records its work as append-only ledger entries, hands the ledger down to subagents, and gets it back with their entries folded in, so the whole tree of work and its results stays traceable and checkable.
 
-## What you get
+The package and distribution are named `workledger-cli`; the command it
+installs is `ledger`.
 
-- **An agent-first CLI** cited from [teken](https://github.com/agentculture/teken)
-  (`afi-cli`) — the runtime package has no third-party dependencies.
-- **A mesh identity** — `culture.yaml` (`suffix` + `backend`) and the matching
-  resident prompt file (`AGENTS.colleague.md`, since this agent runs
-  `backend: colleague`).
-- **The canonical guildmaster skill kit** (11 skills) under `.claude/skills/`,
-  vendored cite-don't-import. See [`docs/skill-sources.md`](docs/skill-sources.md).
-- **A build + deploy baseline** — pytest, lint, the agent-first rubric gate, and
-  PyPI Trusted Publishing wired into GitHub Actions.
+## What is in this repository
+
+- **The `ledger` command** (`workledger/`) — two ledger verbs, `append` and
+  `list`, over an append-only JSONL file, plus the self-describing verbs
+  `whoami`, `learn`, `explain`, `overview`, `doctor` and `cli overview`. The
+  package declares no runtime dependencies.
+- **A mesh identity** — `culture.yaml` (`suffix`, `backend: colleague`, `model`)
+  and the matching resident prompt file, `AGENTS.colleague.md`.
+- **18 skills** under `.claude/skills/`, vendored cite-don't-import. Where each
+  one comes from is recorded in [`docs/skill-sources.md`](docs/skill-sources.md).
+- **Tests and CI** — `tests/` (pytest), and `.github/workflows/tests.yml`, which
+  runs the tests, black, isort, flake8, bandit, markdownlint, the `teken`
+  rubric gate, a version-bump check, and SonarCloud. `publish.yml` publishes to
+  PyPI and TestPyPI with Trusted Publishing.
 
 ## Quickstart
 
@@ -35,7 +41,7 @@ uv run teken cli doctor . --strict    # the agent-first rubric gate CI runs
 | `explain <path>` | Markdown docs for any noun/verb path. |
 | `overview` | Read-only descriptive snapshot of the agent. |
 | `doctor` | Check the agent-identity invariants (prompt-file-present, backend-consistency). |
-| `append <json>` | Append one entry (`agent`, `action`, `summary`; optional `refs`, `data`) to the append-only ledger (`$WORKLEDGER_PATH`, default `.workledger/ledger.jsonl` under the git toplevel of the cwd (the cwd itself outside a repo)). `--stdin` reads JSON from stdin. |
+| `append <json>` | Append one entry (`agent`, `action`, `summary`; optional `refs`, `data`) to the append-only ledger (`$WORKLEDGER_PATH` when set; otherwise `.workledger/ledger.jsonl` under the nearest ancestor directory that contains `.git` (else the current directory)). `--stdin` reads JSON from stdin. |
 | `list` | Read entries: `--agent`, `--action`, `--since`, `--limit`. |
 | `cli overview` | Describe the CLI surface itself. |
 

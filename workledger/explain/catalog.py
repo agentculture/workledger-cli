@@ -1,4 +1,4 @@
-"""Markdown catalog for ``workledger-cli explain <path>``.
+"""Markdown catalog for ``ledger explain <path>``.
 
 Each entry is verbatim markdown. Keys are command-path tuples. The empty tuple,
 ``("workledger-cli",)`` and ``("ledger",)`` all resolve to the root entry.
@@ -9,32 +9,33 @@ context without chaining reads.
 
 from __future__ import annotations
 
-_ROOT = """\
-# workledger-cli
+from workledger._about import COMMAND, DISTRIBUTION, summary
+from workledger.cli._commands._store import DEFAULT_LOCATION_RULE, ENV_PATH
 
-Tracks work in a ledger so agents can prove what they did. An agent records
-each piece of work as one entry in an append-only ledger (`append`) and reads
-entries back with filters (`list`). There is no edit, update, or delete verb, so
-the record stays traceable and checkable. Agents and subagents that are given
-the same ledger file add their entries to the one record.
+_ROOT = f"""\
+# {DISTRIBUTION} (command: `{COMMAND}`)
 
-The ledger is a JSONL file at `$WORKLEDGER_PATH`; the default is
-`.workledger/ledger.jsonl` under the git toplevel of the current directory (the
-directory itself outside a repository).
+{summary()} An agent records each piece of work as one entry in an append-only
+ledger (`append`) and reads entries back with filters (`list`). There is no
+edit, update, or delete verb, so the record stays traceable and checkable.
+Agents and subagents that are given the same ledger file add their entries to
+the one record.
 
-The installed console script is `ledger` (`ledger append`, `ledger list`); these
-docs and `--help` name the tool by its package name, `workledger-cli`.
+The ledger is a JSONL file: `${ENV_PATH}` when that is set; otherwise
+{DEFAULT_LOCATION_RULE}.
+
+The package is `{DISTRIBUTION}`; the command it installs is `{COMMAND}`.
 
 ## Verbs
 
-- `workledger-cli whoami` — identity probe from `culture.yaml`.
-- `workledger-cli learn` — structured self-teaching prompt.
-- `workledger-cli explain <path>` — markdown docs for any noun/verb.
-- `workledger-cli overview` — descriptive snapshot of the agent.
-- `workledger-cli doctor` — check the agent-identity invariants.
-- `workledger-cli append <json>` — append one entry to the ledger.
-- `workledger-cli list` — read ledger entries with filters.
-- `workledger-cli cli overview` — describe the CLI surface.
+- `ledger whoami` — identity probe from `culture.yaml`.
+- `ledger learn` — structured self-teaching prompt.
+- `ledger explain <path>` — markdown docs for any noun/verb.
+- `ledger overview` — descriptive snapshot of the agent.
+- `ledger doctor` — check the agent-identity invariants.
+- `ledger append <json>` — append one entry to the ledger.
+- `ledger list` — read ledger entries with filters.
+- `ledger cli overview` — describe the CLI surface.
 
 ## Exit-code policy
 
@@ -45,64 +46,65 @@ docs and `--help` name the tool by its package name, `workledger-cli`.
 
 ## See also
 
-- `workledger-cli explain append`
-- `workledger-cli explain list`
-- `workledger-cli explain whoami`
-- `workledger-cli explain doctor`
+- `ledger explain append`
+- `ledger explain list`
+- `ledger explain whoami`
+- `ledger explain doctor`
 """
 
 _WHOAMI = """\
-# workledger-cli whoami
+# ledger whoami
 
 Reports the agent's identity from `culture.yaml`: nick (`suffix`), backend,
 served model, and the package version. Read-only.
 
 ## Usage
 
-    workledger-cli whoami
-    workledger-cli whoami --json
+    ledger whoami
+    ledger whoami --json
 """
 
 _LEARN = """\
-# workledger-cli learn
+# ledger learn
 
 Prints a structured self-teaching prompt covering purpose, command map,
 exit-code policy, `--json` support, and the `explain` pointer.
 
 ## Usage
 
-    workledger-cli learn
-    workledger-cli learn --json
+    ledger learn
+    ledger learn --json
 """
 
 _EXPLAIN = """\
-# workledger-cli explain <path>
+# ledger explain <path>
 
 Prints markdown documentation for any noun/verb path. Unlike `--help` (terse,
 positional), `explain` is global and addressable by path.
 
 ## Usage
 
-    workledger-cli explain workledger-cli
-    workledger-cli explain whoami
-    workledger-cli explain --json <path>
+    ledger explain ledger
+    ledger explain whoami
+    ledger explain --json <path>
 """
 
 _OVERVIEW = """\
-# workledger-cli overview
+# ledger overview
 
-Read-only descriptive snapshot of the agent: what it is for, identity (from
-`culture.yaml`), the verb surface, and the mesh-agent artifacts the repo
-carries. Accepts an ignored `target` so a stray path never hard-fails.
+Read-only descriptive snapshot of the agent, in four sections: identity (from
+`culture.yaml`), the verb surface, the artifacts the repository carries, and
+what the package is for. Accepts an ignored `target` so a stray path never
+hard-fails.
 
 ## Usage
 
-    workledger-cli overview
-    workledger-cli overview --json
+    ledger overview
+    ledger overview --json
 """
 
 _DOCTOR = """\
-# workledger-cli doctor
+# ledger doctor
 
 Checks the agent-identity invariants `steward doctor` verifies:
 prompt-file-present and backend-consistency (`colleague` → `AGENTS.colleague.md`), plus a
@@ -110,25 +112,25 @@ skills-present check. Exits 1 when unhealthy.
 
 ## Usage
 
-    workledger-cli doctor
-    workledger-cli doctor --json
+    ledger doctor
+    ledger doctor --json
 """
 
 _CLI = """\
-# workledger-cli cli
+# ledger cli
 
 Noun group for CLI-surface introspection. `cli overview` describes the CLI
 itself (distinct from the global `overview`, which describes the agent).
 
 ## Usage
 
-    workledger-cli cli overview
-    workledger-cli cli overview --json
+    ledger cli overview
+    ledger cli overview --json
 """
 
 
-_APPEND = """\
-# workledger-cli append
+_APPEND = f"""\
+# ledger append
 
 Appends exactly one entry to the append-only ledger and prints the stored entry
 (with generated `id` and UTC `timestamp`). This is the only write verb; there is
@@ -138,18 +140,20 @@ Required fields: `agent`, `action`, `summary` (non-empty strings). Optional:
 `refs` (list of strings), `data` (JSON object). `id` and `timestamp` are
 generated and rejected if supplied; unknown fields are rejected (exit 1).
 
-Storage: JSONL at `$WORKLEDGER_PATH`, default `.workledger/ledger.jsonl` under
-the git toplevel of the current directory (the directory itself outside a
-repository).
+Storage: a JSONL file. `${ENV_PATH}`, when set, is used as given (a relative
+value is relative to the current directory). Otherwise the file is
+{DEFAULT_LOCATION_RULE}.
+The search starts at the current directory itself, and `.git` may be a
+directory or a file (worktrees, submodules).
 
 ## Usage
 
-    workledger-cli append '{"agent":"a","action":"edit","summary":"did x"}' --json
-    echo '{"agent":"a","action":"edit","summary":"did x"}' | workledger-cli append --stdin
+    ledger append '{{"agent":"a","action":"edit","summary":"did x"}}' --json
+    echo '{{"agent":"a","action":"edit","summary":"did x"}}' | ledger append --stdin
 """
 
 _LIST = """\
-# workledger-cli list
+# ledger list
 
 Lists ledger entries oldest first. Filters combine with AND: `--agent NAME`,
 `--action NAME`, `--since ISO8601` (inclusive; naive means UTC), `--limit N`
@@ -158,8 +162,8 @@ empty array.
 
 ## Usage
 
-    workledger-cli list
-    workledger-cli list --agent a --since 2026-01-01T00:00:00Z --limit 5 --json
+    ledger list
+    ledger list --agent a --since 2026-01-01T00:00:00Z --limit 5 --json
 """
 
 ENTRIES: dict[tuple[str, ...], str] = {

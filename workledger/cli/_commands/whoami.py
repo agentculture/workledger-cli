@@ -4,8 +4,9 @@ Reports the agent's identity as declared in ``culture.yaml``: its nick
 (``suffix``), the backend it runs on, and the served model (if any) — plus the
 package version. Read-only; touches nothing but its own ``culture.yaml``.
 
-When you clone this template, rename the package and update ``culture.yaml`` —
-``whoami`` then reflects your new agent's identity with no code change.
+The identity is read at call time, so a change to ``culture.yaml`` shows up in
+``whoami`` with no code change. In a wheel install no ``culture.yaml`` ships
+with the package and the literal defaults are reported.
 """
 
 from __future__ import annotations

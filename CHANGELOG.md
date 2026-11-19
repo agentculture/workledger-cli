@@ -5,6 +5,20 @@ All notable changes to this project will be documented in this file.
 Format follows [Keep a Changelog](https://keepachangelog.com/). This project
 adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.8.1] - 2026-11-19
+
+### Changed
+
+- `overview` (text and `--json`) now opens with a `Purpose` section that says what the package is for; the existing sections follow unchanged.
+- `learn --json` carries a `console_script` field (`ledger`), and its `purpose` describes the ledger.
+- README quickstart uses the installed `ledger` command and shows `append` and `list`.
+
+### Fixed
+
+- The `--help` description, the `learn` text and JSON, the `explain` root entry and the `overview` docs described the template this repo was scaffolded from ("a clonable template for AgentCulture mesh agents"). They now describe the package: a work ledger for agents, matching the `pyproject.toml` description. Wording only: no verb, flag, exit code or the argparse `prog` changed.
+- `learn` and `explain append` gave the default ledger path as `./.workledger/ledger.jsonl`; they now state what the store does (`.workledger/ledger.jsonl` under the git toplevel of the current directory, or the directory itself outside a repository).
+- README no longer carries the template's "Make it your own" rename instructions.
+
 ## [0.8.0] - 2026-10-27
 
 ### Added

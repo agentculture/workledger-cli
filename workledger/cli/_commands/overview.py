@@ -1,7 +1,8 @@
 """``workledger-cli overview`` — read-only descriptive snapshot of the agent.
 
-Describes the agent to an agent reader: identity (from culture.yaml), the verb
-surface, and the sibling-pattern artifacts this template carries. The shared
+Describes the agent to an agent reader: what it is for (a work ledger for
+agents), identity (from culture.yaml), the verb surface, and the mesh-agent
+artifacts the repo carries. The shared
 section/render helpers here are reused by the ``cli`` noun's ``overview`` (see
 :mod:`workledger.cli._commands.cli`).
 
@@ -24,6 +25,12 @@ _ARTIFACTS = [
     "pyproject.toml + .github/workflows/ — buildable, deployable package baseline",
 ]
 
+_PURPOSE = [
+    "tracks work in a ledger so agents can prove what they did",
+    "append adds one entry; list reads entries back; nothing edits or deletes an entry",
+    "ledger file: $WORKLEDGER_PATH, default .workledger/ledger.jsonl (append-only JSONL)",
+]
+
 _VERBS = [
     "whoami — identity probe (nick, version, backend, model)",
     "learn — structured self-teaching prompt",
@@ -39,6 +46,7 @@ def agent_sections() -> list[dict[str, object]]:
     """Sections describing the agent (used by the global verb)."""
     ident = report()
     return [
+        {"title": "Purpose", "items": list(_PURPOSE)},
         {
             "title": "Identity",
             "items": [
@@ -102,7 +110,7 @@ def cmd_overview(args: argparse.Namespace) -> int:
 def register(sub: argparse._SubParsersAction) -> None:
     p = sub.add_parser(
         "overview",
-        help="Read-only descriptive snapshot of the agent (identity, verbs, artifacts).",
+        help="Read-only descriptive snapshot of the agent (purpose, identity, verbs, artifacts).",
     )
     p.add_argument(
         "target",

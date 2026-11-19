@@ -1,7 +1,7 @@
 """Markdown catalog for ``workledger-cli explain <path>``.
 
-Each entry is verbatim markdown. Keys are command-path tuples. The empty tuple
-and ``("workledger-cli",)`` both resolve to the root entry.
+Each entry is verbatim markdown. Keys are command-path tuples. The empty tuple,
+``("workledger-cli",)`` and ``("ledger",)`` all resolve to the root entry.
 
 Keep bodies self-contained: an agent reading one entry should get enough
 context without chaining reads.
@@ -12,11 +12,18 @@ from __future__ import annotations
 _ROOT = """\
 # workledger-cli
 
-A clonable template for AgentCulture mesh agents. It carries an agent-first CLI
-(cited from the teken `python-cli` reference), a mesh identity (`culture.yaml` +
-`CLAUDE.md`), the canonical guildmaster skill kit under `.claude/skills/`, and a
-buildable/deployable package baseline. Clone it, rename the package, edit
-`culture.yaml`, and you have a new agent.
+Tracks work in a ledger so agents can prove what they did. An agent records
+each piece of work as one entry in an append-only ledger (`append`) and reads
+entries back with filters (`list`). There is no edit, update, or delete verb, so
+the record stays traceable and checkable. Agents and subagents that are given
+the same ledger file add their entries to the one record.
+
+The ledger is a JSONL file at `$WORKLEDGER_PATH`; the default is
+`.workledger/ledger.jsonl` under the git toplevel of the current directory (the
+directory itself outside a repository).
+
+The installed console script is `ledger` (`ledger append`, `ledger list`); these
+docs and `--help` name the tool by its package name, `workledger-cli`.
 
 ## Verbs
 
@@ -38,6 +45,8 @@ buildable/deployable package baseline. Clone it, rename the package, edit
 
 ## See also
 
+- `workledger-cli explain append`
+- `workledger-cli explain list`
 - `workledger-cli explain whoami`
 - `workledger-cli explain doctor`
 """
@@ -82,9 +91,9 @@ positional), `explain` is global and addressable by path.
 _OVERVIEW = """\
 # workledger-cli overview
 
-Read-only descriptive snapshot of the agent: identity (from `culture.yaml`), the
-verb surface, and the sibling-pattern artifacts the template carries. Accepts an
-ignored `target` so a stray path never hard-fails.
+Read-only descriptive snapshot of the agent: what it is for, identity (from
+`culture.yaml`), the verb surface, and the mesh-agent artifacts the repo
+carries. Accepts an ignored `target` so a stray path never hard-fails.
 
 ## Usage
 
@@ -129,7 +138,9 @@ Required fields: `agent`, `action`, `summary` (non-empty strings). Optional:
 `refs` (list of strings), `data` (JSON object). `id` and `timestamp` are
 generated and rejected if supplied; unknown fields are rejected (exit 1).
 
-Storage: JSONL at `$WORKLEDGER_PATH`, default `./.workledger/ledger.jsonl`.
+Storage: JSONL at `$WORKLEDGER_PATH`, default `.workledger/ledger.jsonl` under
+the git toplevel of the current directory (the directory itself outside a
+repository).
 
 ## Usage
 

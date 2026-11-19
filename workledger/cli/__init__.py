@@ -1,9 +1,10 @@
 """Unified CLI entry point for workledger-cli.
 
-The agent-first global verbs (``whoami``, ``learn``, ``explain``, ``overview``,
-``doctor``) are registered here under :mod:`workledger.cli._commands`,
-alongside the ``cli`` noun group. Future noun groups register via their own
-``register()`` functions following the same pattern.
+The ledger verbs (``append``, ``list``) and the agent-first global verbs
+(``whoami``, ``learn``, ``explain``, ``overview``, ``doctor``) are registered
+here under :mod:`workledger.cli._commands`, alongside the ``cli`` noun group.
+Future noun groups register via their own ``register()`` functions following
+the same pattern.
 
 Error propagation contract
 --------------------------
@@ -73,7 +74,7 @@ def _build_parser() -> argparse.ArgumentParser:
 
     parser = _CliArgumentParser(
         prog="workledger-cli",
-        description="workledger-cli — a clonable template for AgentCulture mesh agents.",
+        description=("workledger-cli — tracks work in a ledger so agents can prove what they did."),
     )
     parser.add_argument(
         "--version",

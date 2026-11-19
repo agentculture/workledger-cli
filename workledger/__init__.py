@@ -1,4 +1,4 @@
-"""workledger-cli — agent-first CLI for an AgentCulture mesh agent."""
+"""workledger-cli — a work ledger for agents, with an agent-first CLI."""
 
 from __future__ import annotations
 

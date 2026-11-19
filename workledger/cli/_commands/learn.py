@@ -12,14 +12,18 @@ from workledger import __version__
 from workledger.cli._output import emit_result
 
 _TEXT = """\
-workledger-cli — a clonable template for AgentCulture mesh agents.
+workledger-cli — tracks work in a ledger so agents can prove what they did.
 
 Purpose
 -------
-Scaffold for a new Culture mesh agent: an agent-first CLI (cited from the teken
-`python-cli` reference), an identity (culture.yaml + CLAUDE.md), the canonical
-guildmaster skill kit under .claude/skills/, and a deploy/CI baseline. Clone it,
-rename the package, and edit culture.yaml to mint a new agent.
+A work ledger for agents. An agent records each piece of work as one entry in
+an append-only ledger (`append`) and reads entries back with filters (`list`).
+Entries are never edited or removed, so the record of who did what, and when,
+stays traceable and checkable. Agents and subagents that are given the same
+ledger file add their entries to the one record.
+
+The installed console script is `ledger` (`ledger append`, `ledger list`);
+this text and --help name the tool by its package name, workledger-cli.
 
 Commands
 --------
@@ -46,7 +50,10 @@ Exit-code policy
 
 Ledger
 ------
-Append-only JSONL at $WORKLEDGER_PATH (default ./.workledger/ledger.jsonl).
+Append-only JSONL at $WORKLEDGER_PATH; the default is .workledger/ledger.jsonl
+under the git toplevel of the current directory (the directory itself outside
+a repository). An entry holds agent, action and summary, optional refs and
+data, and a generated id and UTC timestamp.
 There is deliberately no edit, update, or delete verb.
 
 More detail
@@ -59,7 +66,11 @@ def _as_json_payload() -> dict[str, object]:
     return {
         "tool": "workledger-cli",
         "version": __version__,
-        "purpose": "Clonable scaffold for a new AgentCulture mesh agent.",
+        "purpose": (
+            "Tracks work in a ledger so agents can prove what they did: "
+            "append-only entries written with append and read back with list."
+        ),
+        "console_script": "ledger",
         "commands": [
             {"path": ["whoami"], "summary": "Identity probe from culture.yaml."},
             {"path": ["learn"], "summary": "Self-teaching prompt."},
